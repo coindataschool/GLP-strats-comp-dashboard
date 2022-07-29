@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from duda import dune
+from duneanalytics import DuneAnalytics
 import streamlit as st
 from strats import bt_strat1, bt_strat2, bt_strat3, bt_strat4, bt_strat5
 import plotly.express as px
@@ -25,7 +25,8 @@ def run_app(chain):
     qid_claim_cost = 1092684 if chain == 'Arbitrum' else 1102122 
     qid_mint_cost = 1069676 if chain == 'Arbitrum' else 1102319 
 
-    # read data from Dune
+    # access dune
+    dune = DuneAnalytics(st.secrets["DUNE_USERNAME"], st.secrets["DUNE_PASSWORD"])
     dune.login()
     dune.fetch_auth_token()
 
