@@ -140,6 +140,11 @@ def run_app(chain):
     # )
     
     st.header(chain)
+    
+    txcost_wlink = "[Transaction costs](https://dune.com/coindataschool/cost-of-transactions-on-gmx-{})".format(chain.lower())
+    msg = txcost_wlink + "are included."
+    st.write(msg)
+
     fig = px.line(df_long, x='Date', y='Account Value', color='Strategy',
         labels=dict(Date=""))
     fig.update_layout(plot_bgcolor="white", yaxis_tickprefix = '$', 
