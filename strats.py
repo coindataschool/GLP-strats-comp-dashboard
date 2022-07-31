@@ -51,11 +51,12 @@ def bt_strat2(df_price_yield, day2, end_date, init_shares, reserve,
                     # no fees are collected by the platform when we claim rewards;
                     # a fee is collected by the platform everytime we sell rewards to usd 
                     my_yield_usd_after_fees = lambda x: x.yield_per_share_usd * x.my_glp_shares * (1-x.fee_bp_swap/1e4),
+                    my_cumuyield_usd_after_fees = lambda x: x.my_yield_usd_after_fees.cumsum(),
                     # need to pay gas everytime we claim and everytime we swap
                     reserve = lambda x: reserve - x.gas_claim.cumsum() - x.gas_swap.cumsum(),
                     # finally we calculate total account value each day
-                    my_total_value = lambda x: x.glp_price * x.my_glp_shares + x.my_yield_usd_after_fees + x.reserve)
-        ) 
+                    my_total_value = lambda x: x.glp_price * x.my_glp_shares + x.my_cumuyield_usd_after_fees + x.reserve)
+        )
 
     # if df.reserve.loc[end_date] < 0:
     #     print("To implement this strategy, you need at least ${} in reserve to pay gas.".format(np.ceil(reserve + abs(df.reserve.loc[end_date]))))
@@ -122,42 +123,40 @@ def bt_strat4(df_price_yield, day2, end_date, init_shares, reserve,
             .rename(columns = {'gas_usd': 'gas_claim'}))
     df = (pd.merge(df, df_swap_cost, left_index=True, right_index=True)
             .rename(columns = {'gas_usd': 'gas_swap', 'fee_bp': 'fee_bp_swap'}))
+    df = df.assign(my_glp_shares = init_shares, 
+                   my_cumu_yield_usd = lambda x: (x.yield_per_share_usd * x.my_glp_shares).cumsum())
 
-    daily_shares = [init_shares] # init_shares bought on end of day1
-    daily_reserve = [reserve] 
-    daily_acct_value = [total_value_day1.iloc[0]]
-    yield_7d = 0
+    # separate into two frames: no sell vs sell
+    dates_trade = pd.date_range(day2-pd.Timedelta(1, 'days'), end_date, freq='7D')[1:] # cuz day1 is not in df.index
+    df_trade_yes = df.loc[dates_trade,:]
+    df_trade_no  = df.loc[~df.index.isin(dates_trade),:]
 
-    for i in range(len(df)): # 1st row of df is day2. 
-        shares_yesterday = daily_shares[-1] 
-        reserve_yesterday = daily_reserve[-1]    
-        price_today = df.glp_price[i]
-        yield_today = df.yield_per_share_usd[i] * shares_yesterday # shares_yesterday earn full yield today                               
-        yield_7d += yield_today 
+    # on dates we sell the rewards
+    df_trade_yes = df_trade_yes.assign(my_7d_yield = lambda x: x.my_cumu_yield_usd - x.my_cumu_yield_usd.shift(1))
+    df_trade_yes.my_7d_yield[0] = df_trade_yes.my_cumu_yield_usd[0]
+    df_trade_yes = df_trade_yes.assign(
+        # no fees are collected by the platform when we claim rewards;
+        # a fee is collected by the platform everytime we swap eth to usd, and we do it every 7 days
+        my_cumu_yield_usd_after_fees = lambda x: (x.my_7d_yield * (1-x.fee_bp_swap/1e4)).cumsum(),
         
-        # sell rewards into usd every 7 days
-        if (i > 0) and (i%7 == 0):
-            # no fees are collected by the platform when we claim rewards;
-            # a fee is collected by the platform everytime we swap 
-            yield_7d_after_fees = yield_7d * (1 - df.fee_bp_swap[i]/1e4)
-            # also need to pay gas everytime we claim and everytime we sell them into usd
-            reserve_today = reserve_yesterday - df.gas_claim[i] - df.gas_swap[i]
-            yield_7d = 0 # reset to get ready for the next 7-day
-            # calculate account value today
-            shares_today = shares_yesterday
-            acct_value_today = shares_today * price_today + yield_7d_after_fees + reserve_today
-        else: # no action, just carry through the values
-            shares_today = shares_yesterday
-            reserve_today = reserve_yesterday
-            acct_value_today = shares_today * price_today + yield_today + reserve_today
-        
-        # collect today's values
-        daily_shares.append(shares_today)
-        daily_reserve.append(reserve_today)
-        daily_acct_value.append(acct_value_today)    
-        
+        # need to pay gas everytime we claim and everytime we swap
+        reserve = lambda x: reserve - x.gas_claim.cumsum() - x.gas_swap.cumsum()
+    )
+
+    # on the dates we don't sell
+    df_trade_no = df_trade_no.assign(
+        my_cumu_yield_usd_after_fees = lambda x: x.my_cumu_yield_usd, reserve = pd.NA)
+
+    # put the two frames back together
+    common_cols = ['glp_price', 'my_glp_shares', 'my_cumu_yield_usd_after_fees', 'reserve']
+    df = pd.concat([df_trade_no[common_cols], df_trade_yes[common_cols]]).sort_index().fillna(method='bfill')
+    df = df.fillna(method='ffill') # fill the tail NAs of reserve 
+
+    # finally we calculate total account value each day
+    df = df.assign(my_total_value = lambda x: x.glp_price * x.my_glp_shares + x.my_cumu_yield_usd_after_fees + x.reserve)
+
     # return the series of account values
-    return pd.Series(daily_acct_value, index=total_value_day1.index.append(df.index))
+    return pd.concat([total_value_day1, df.my_total_value])
 
 # Strategy 5: Reinvest Rewards into GLP Weekly
 def bt_strat5(df_price_yield, day2, end_date, init_shares, reserve,
@@ -191,13 +190,14 @@ def bt_strat5(df_price_yield, day2, end_date, init_shares, reserve,
             shares_today = shares_yesterday + shares_bought_today 
             # also need to pay gas everytime we claim and everytime we mint glp
             reserve_today = reserve_yesterday - df.gas_claim[i] - df.gas_mint[i]
-            yield_7d = 0 # reset to get ready for the next 7-day
             # calculate account value today
             acct_value_today = shares_today * price_today + reserve_today
+            # reset to get ready for the next 7-day
+            yield_7d = 0 
         else: # no action, just carry through the values
             shares_today = shares_yesterday
             reserve_today = reserve_yesterday
-            acct_value_today = shares_today * price_today + yield_today + reserve_today
+            acct_value_today = shares_today * price_today + yield_7d + reserve_today
         
         # collect today's values
         daily_shares.append(shares_today)
