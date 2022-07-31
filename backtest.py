@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 import pandas as pd
 from duneanalytics import DuneAnalytics
@@ -62,14 +63,18 @@ def run_app(chain):
     st.header("Enter your numbers:")
     c1, c2, c3 = st.columns(3)
     with c1:
-        if chain=='Arbitrum':
-            start_date = st.text_input('Start Date [enter a date after 2021-08-31]', '2021-08-31') 
+        if chain=='Arbitrum': 
+            start_date = st.date_input('Start Date', 
+                value=datetime.date(2021, 8, 31), 
+                min_value=datetime.date(2021, 8, 31)) 
         else: 
-            start_date = st.text_input('Start Date [enter a date after 2022-01-06]', '2022-01-06')
+            start_date = st.date_input('Start Date', 
+                value=datetime.date(2022, 1, 6), 
+                min_value=datetime.date(2022, 1, 6))
     with c2:
-        start_capital = st.number_input('Investment ($ USD)', 10_000)
+        start_capital = st.number_input('Investment ($ USD)', min_value=100, value=10_000)
     with c3:
-        start_reserve = st.number_input('Gas Money ($ USD)', 1600)
+        start_reserve = st.number_input('Gas Money ($ USD)', min_value=1600, value=1600)
 
     # important days
     day1 = pd.to_datetime(start_date)
