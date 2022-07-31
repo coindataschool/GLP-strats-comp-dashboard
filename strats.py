@@ -1,4 +1,5 @@
 import pandas as pd 
+import numpy as np
 
 # Strategy 1: Accumulate rewards and Claim once at the end and Swap to USD 
 def bt_strat1(chain, df_price_yield, day2, end_date, init_shares, reserve,
@@ -127,7 +128,7 @@ def bt_strat4(df_price_yield, day2, end_date, init_shares, reserve,
                    my_cumu_yield_usd = lambda x: (x.yield_per_share_usd * x.my_glp_shares).cumsum())
 
     # separate into two frames: no sell vs sell
-    dates_trade = pd.date_range(day2-pd.Timedelta(1, 'days'), end_date, freq='7D')[1:] # cuz day1 is not in df.index
+    dates_trade = pd.date_range(day2-pd.Timedelta(1, 'day'), end_date, freq='7D')[1:] # cuz day1 is not in df.index
     df_trade_yes = df.loc[dates_trade,:]
     df_trade_no  = df.loc[~df.index.isin(dates_trade),:]
 
@@ -145,7 +146,7 @@ def bt_strat4(df_price_yield, day2, end_date, init_shares, reserve,
 
     # on the dates we don't sell
     df_trade_no = df_trade_no.assign(
-        my_cumu_yield_usd_after_fees = lambda x: x.my_cumu_yield_usd, reserve = pd.NA)
+        my_cumu_yield_usd_after_fees = lambda x: x.my_cumu_yield_usd, reserve = np.nan)
 
     # put the two frames back together
     common_cols = ['glp_price', 'my_glp_shares', 'my_cumu_yield_usd_after_fees', 'reserve']
