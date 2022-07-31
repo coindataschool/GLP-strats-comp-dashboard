@@ -77,6 +77,7 @@ def run_app(chain):
         start_reserve = st.number_input('Gas Money ($ USD)', min_value=1600, value=1600)
 
     # important days
+    start_date = start_date.strftime('%Y-%m-%d') # change to date string
     day1 = pd.to_datetime(start_date)
     day2 = day1 + pd.Timedelta(1, 'day')
     # day_before_end = end_date - pd.Timedelta(1, 'day')
