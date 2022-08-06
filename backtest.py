@@ -156,5 +156,5 @@ def run_app(chain):
     st.plotly_chart(fig, use_container_width=True)
     
     txcost_wlink = "[Transaction costs](https://dune.com/coindataschool/cost-of-transactions-on-gmx-{})".format(chain.lower())
-    msg = txcost_wlink + " are included."
+    msg = txcost_wlink + " are included, and esGMX rewards are excluded."
     st.write(msg)
