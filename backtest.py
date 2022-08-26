@@ -151,7 +151,11 @@ def run_app(chain):
         labels=dict(Date=""))
     fig.update_layout(plot_bgcolor="white", yaxis_tickprefix = '$', 
         yaxis_tickformat = ',.2f',
-        legend=dict(orientation="h")
+        legend=dict(orientation="h"),
+        font=dict(size=18),
+        autosize=False,
+        width=1200,
+        height=600,
     )
     st.plotly_chart(fig, use_container_width=True)
     
