@@ -15,7 +15,7 @@ def extract_frame_from_dune_data(dune_data):
     # set `day` as index
     df['date'] = pd.to_datetime(df.day.str.replace('T.*', '', regex=True))
     del df['day']
-    df = df.set_index('date')
+    df = df.set_index('date').sort_index()
     # drop the last row cuz it may not always be a full day
     return df.iloc[:-1, :]
 
