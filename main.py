@@ -16,7 +16,7 @@ with st.sidebar:
     st.markdown("## Try GMX")
     st.markdown("- Get [5% discount](https://gmx.io/#/?ref=coin_data_school) when trading on GMX.")
     st.markdown("## Support My Work")
-    st.markdown("- ETH Wallet: `0x783c5546c863f65481bd05fd0e3fd5f26724604e`")
+    st.markdown("- [ETH Wallet](https://etherscan.io/address/0x783c5546c863f65481bd05fd0e3fd5f26724604e)")
     st.markdown("- [Tip me sat](https://tippin.me/@coindataschool)")
 
 # main section
