@@ -2,3 +2,4 @@ streamlit
 pandas
 plotly
 duneanalytics
+git+https://github.com/itzmestar/duneanalytics.git@main#egg=duneanalytics
