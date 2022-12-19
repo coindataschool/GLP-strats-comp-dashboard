@@ -5,13 +5,12 @@ from duneanalytics import DuneAnalytics
 import streamlit as st
 from strats import bt_strat1, bt_strat2, bt_strat3, bt_strat4, bt_strat5
 import plotly.express as px
+import os 
 
 # define helper function
 def extract_frame_from_dune_data(dune_data):    
-    dd = dune_data['data']['get_result_by_result_id']
+    dd = dune_data['data']['get_execution']['execution_succeeded']['data']
     df = pd.json_normalize(dd, record_prefix='')
-    df = df.loc[:, df.columns.str.startswith('data')]
-    df.columns = df.columns.str.replace('data.', '', regex=False)
     # set `day` as index
     df['date'] = pd.to_datetime(df.day.str.replace('T.*', '', regex=True))
     del df['day']
@@ -28,14 +27,15 @@ def run_app(chain):
 
     # access dune
     dune = DuneAnalytics(st.secrets["DUNE_USERNAME"], st.secrets["DUNE_PASSWORD"])
+    # dune = DuneAnalytics(os.environ["DUNE_USERNAME"], os.environ["DUNE_PASSWORD"])
     dune.login()
     dune.fetch_auth_token()
 
     # fetch query result
-    price_yield = dune.query_result(dune.query_result_id(query_id=qid_price_yield))
-    swap_cost = dune.query_result(dune.query_result_id(query_id=qid_swap_cost))
-    claim_cost = dune.query_result(dune.query_result_id(query_id=qid_claim_cost))
-    mint_cost = dune.query_result(dune.query_result_id(query_id=qid_mint_cost))
+    price_yield = dune.get_execution_result(dune.query_result_id_v3(qid_price_yield))
+    swap_cost = dune.get_execution_result(dune.query_result_id_v3(qid_swap_cost))
+    claim_cost = dune.get_execution_result(dune.query_result_id_v3(qid_claim_cost))
+    mint_cost = dune.get_execution_result(dune.query_result_id_v3(qid_mint_cost))
 
     # extract data frames
     df_price_yield = extract_frame_from_dune_data(price_yield)
