@@ -11,9 +11,7 @@ import os
 def extract_frame_from_dune_data(dune_data):    
     dd = dune_data['data']['get_execution']['execution_succeeded']['data']
     df = pd.json_normalize(dd, record_prefix='')
-    # set `day` as index
-    df['date'] = pd.to_datetime(df.day.str.replace('T.*', '', regex=True))
-    del df['day']
+    df['date'] = pd.to_datetime(df['date'].str.replace('T.*', '', regex=True))
     df = df.set_index('date').sort_index()
     # drop the last row cuz it may not always be a full day
     return df.iloc[:-1, :]
